@@ -53,16 +53,11 @@ function randomShipPlacement($size, $occupied) {
   }
 }
 
-/*
-|--------------------------------------------------------------------------
-| INIT GAME (first request only)
-|--------------------------------------------------------------------------
-*/
-if (!isset($_SESSION['game'])) {
+function generateShips($shipSizes) {
   $ships = [];
   $occupied = [];
 
-  foreach ($SHIP_SIZES as $size) {
+  foreach ($shipSizes as $size) {
     $cells = randomShipPlacement($size, $occupied);
     $occupied = array_merge($occupied, $cells);
     $ships[] = [
@@ -72,10 +67,32 @@ if (!isset($_SESSION['game'])) {
     ];
   }
 
-  $_SESSION['game'] = [
+  return $ships;
+}
+
+function initGame($shipSizes, $existingShips = null) {
+  if ($existingShips === null) {
+    $ships = generateShips($shipSizes);
+  } else {
+    $ships = $existingShips;
+    foreach ($ships as &$ship) {
+      $ship['hits'] = [];
+    }
+  }
+
+  return [
     'ships' => $ships,
     'shots' => []
   ];
+}
+
+/*
+|--------------------------------------------------------------------------
+| INIT GAME (first request only)
+|--------------------------------------------------------------------------
+*/
+if (!isset($_SESSION['game'])) {
+  $_SESSION['game'] = initGame($SHIP_SIZES);
 }
 
 /*
@@ -84,6 +101,32 @@ if (!isset($_SESSION['game'])) {
 |--------------------------------------------------------------------------
 */
 $input = json_decode(file_get_contents('php://input'), true);
+if (!is_array($input)) {
+  $input = [];
+}
+
+if (isset($input['action'])) {
+  $action = $input['action'];
+
+  if ($action === 'new-game') {
+    $_SESSION['game'] = initGame($SHIP_SIZES);
+    echo json_encode(['ok' => true, 'action' => 'new-game']);
+    exit;
+  }
+
+  if ($action === 'restart-game') {
+    if (!isset($_SESSION['game'])) {
+      $_SESSION['game'] = initGame($SHIP_SIZES);
+    } else {
+      $_SESSION['game'] = initGame($SHIP_SIZES, $_SESSION['game']['ships']);
+    }
+    echo json_encode(['ok' => true, 'action' => 'restart-game']);
+    exit;
+  }
+
+  echo json_encode(['error' => 'Unknown action']);
+  exit;
+}
 
 if (!isset($input['cell'])) {
   echo json_encode(['error' => 'Invalid request']);

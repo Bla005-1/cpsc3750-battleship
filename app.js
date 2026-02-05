@@ -4,7 +4,8 @@ const shotsText = document.getElementById('shots')
 const hitsText = document.getElementById('hits')
 const missesText = document.getElementById('misses')
 const sunkText = document.getElementById('sunk')
-const resetButton = document.getElementById('reset')
+const newGameButton = document.getElementById('new-game')
+const restartGameButton = document.getElementById('restart-game')
 
 const ROWS = 10
 const COLS = 10
@@ -85,6 +86,40 @@ function endGame() {
   })
 }
 
+function resetBoard(message) {
+  shots = 0
+  hits = 0
+  misses = 0
+  sunk = 0
+  gameLocked = false
+  updateStats()
+  statusText.textContent = message
+
+  document.querySelectorAll('.cell').forEach(cell => {
+    cell.disabled = false
+    cell.classList.remove('hit', 'miss')
+  })
+}
+
+function requestGameAction(action, message) {
+  fetch('api/fire.php', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action })
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (!data.ok) {
+        statusText.textContent = data.error || 'Unable to reset game'
+        return
+      }
+      resetBoard(message)
+    })
+    .catch(() => {
+      statusText.textContent = 'Server error. Try again.'
+    })
+}
+
 function updateStats() {
   shotsText.textContent = shots
   hitsText.textContent = hits
@@ -92,10 +127,12 @@ function updateStats() {
   sunkText.textContent = sunk
 }
 
-function resetGame() {
-  window.location.reload()
-}
+newGameButton.addEventListener('click', () => {
+  requestGameAction('new-game', 'New game ready. Fire at will.')
+})
 
-resetButton.addEventListener('click', resetGame)
+restartGameButton.addEventListener('click', () => {
+  requestGameAction('restart-game', 'Board reset. Same ship layout.')
+})
 
 createGrid()
