@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Battleship++</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <p class="kicker">Tactical Grid</p>
+        <h1>Battleship++</h1>
+      </div>
+      <div class="top-actions">
+        <button id="reset" class="btn btn-ghost" type="button">Reset</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel">
+        <div class="status-card">
+          <p class="status-label">Command</p>
+          <p id="status" class="status-text">Fire at will.</p>
+          <div class="status-pulse" aria-hidden="true"></div>
+        </div>
+
+        <div class="stats">
+          <div class="stat">
+            <span class="stat-label">Shots</span>
+            <span id="shots" class="stat-value">0</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Hits</span>
+            <span id="hits" class="stat-value">0</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Misses</span>
+            <span id="misses" class="stat-value">0</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Ships Sunk</span>
+            <span id="sunk" class="stat-value">0</span>
+          </div>
+        </div>
+
+        <div class="legend">
+          <div class="legend-item">
+            <span class="legend-chip hit"></span>
+            <span>Hit</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-chip miss"></span>
+            <span>Miss</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-chip neutral"></span>
+            <span>Ready</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="arena">
+        <div class="grid-wrap">
+          <div id="grid" class="grid" aria-label="Battle grid"></div>
+        </div>
+        <p class="grid-hint">Tap a coordinate to fire. Ships are hidden.</p>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
