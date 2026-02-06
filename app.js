@@ -1,9 +1,14 @@
 const grid = document.getElementById('grid')
+const playerGrid = document.getElementById('player-grid')
 const statusText = document.getElementById('status')
 const shotsText = document.getElementById('shots')
 const hitsText = document.getElementById('hits')
 const missesText = document.getElementById('misses')
 const sunkText = document.getElementById('sunk')
+const playerSunkText = document.getElementById('player-sunk')
+const incomingShotsText = document.getElementById('incoming-shots')
+const incomingHitsText = document.getElementById('incoming-hits')
+const incomingMissesText = document.getElementById('incoming-misses')
 const newGameButton = document.getElementById('new-game')
 const restartGameButton = document.getElementById('restart-game')
 
@@ -12,9 +17,10 @@ const COLS = 10
 const letters = 'ABCDEFGHIJ'
 
 let gameLocked = false
-const cells = {}
+const computerCells = {}
+const playerCells = {}
 
-function createGrid() {
+function createGrid(targetGrid, cellMap, enableFire) {
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       const cell = document.createElement('button')
@@ -23,26 +29,36 @@ function createGrid() {
       cell.textContent = id
       cell.dataset.cell = id
       cell.classList.add('cell')
-      cell.setAttribute('aria-label', `Fire at ${id}`)
+      if (enableFire) {
+        cell.setAttribute('aria-label', `Fire at ${id}`)
+        cell.addEventListener('click', () => fire(cell))
+      } else {
+        cell.classList.add('player-cell')
+        cell.disabled = true
+        cell.setAttribute('aria-label', `Player cell ${id}`)
+      }
 
-      cell.addEventListener('click', () => fire(cell))
-
-      grid.appendChild(cell)
-      cells[id] = cell
+      targetGrid.appendChild(cell)
+      cellMap[id] = cell
     }
   }
 }
 
 function applyState(state, message) {
   // Clear board
-  Object.values(cells).forEach(cell => {
+  Object.values(computerCells).forEach(cell => {
     cell.classList.remove('hit', 'miss')
     cell.disabled = false
   })
 
+  Object.values(playerCells).forEach(cell => {
+    cell.classList.remove('hit', 'miss', 'ship')
+    cell.disabled = true
+  })
+
   // Apply hits/misses
   state.computerBoard.hits.forEach(id => {
-    const cell = cells[id]
+    const cell = computerCells[id]
     if (cell) {
       cell.classList.add('hit')
       cell.disabled = true
@@ -50,12 +66,41 @@ function applyState(state, message) {
   })
 
   state.computerBoard.misses.forEach(id => {
-    const cell = cells[id]
+    const cell = computerCells[id]
     if (cell) {
       cell.classList.add('miss')
       cell.disabled = true
     }
   })
+
+  if (state.playerBoard?.ships) {
+    state.playerBoard.ships.forEach(ship => {
+      ship.cells.forEach(id => {
+        const cell = playerCells[id]
+        if (cell) {
+          cell.classList.add('ship')
+        }
+      })
+    })
+  }
+
+  if (state.playerBoard?.hits) {
+    state.playerBoard.hits.forEach(id => {
+      const cell = playerCells[id]
+      if (cell) {
+        cell.classList.add('hit')
+      }
+    })
+  }
+
+  if (state.playerBoard?.misses) {
+    state.playerBoard.misses.forEach(id => {
+      const cell = playerCells[id]
+      if (cell) {
+        cell.classList.add('miss')
+      }
+    })
+  }
 
   // Stats from server state (client math on public board)
   const shots = state.computerBoard.hits.length + state.computerBoard.misses.length
@@ -64,8 +109,21 @@ function applyState(state, message) {
   missesText.textContent = state.computerBoard.misses.length
   if (typeof state.fleetSize === 'number') {
     sunkText.textContent = `${state.computerSunk}/${state.fleetSize}`
+    if (playerSunkText) {
+      playerSunkText.textContent = `${state.playerSunk}/${state.fleetSize}`
+    }
   } else {
     sunkText.textContent = state.computerSunk || 0
+    if (playerSunkText) {
+      playerSunkText.textContent = state.playerSunk || 0
+    }
+  }
+
+  if (state.playerBoard) {
+    const incomingShots = state.playerBoard.hits.length + state.playerBoard.misses.length
+    if (incomingShotsText) incomingShotsText.textContent = incomingShots
+    if (incomingHitsText) incomingHitsText.textContent = state.playerBoard.hits.length
+    if (incomingMissesText) incomingMissesText.textContent = state.playerBoard.misses.length
   }
 
   gameLocked = state.winner !== null
@@ -74,12 +132,14 @@ function applyState(state, message) {
     statusText.textContent = message
   } else if (state.winner === 'player') {
     statusText.textContent = 'You win!'
+  } else if (state.winner === 'computer') {
+    statusText.textContent = 'Computer wins!'
   } else {
     statusText.textContent = 'Fire at will.'
   }
 
   if (gameLocked) {
-    Object.values(cells).forEach(cell => (cell.disabled = true))
+    Object.values(computerCells).forEach(cell => (cell.disabled = true))
   }
 }
 
@@ -98,26 +158,38 @@ function fire(button) {
         return
       }
 
-      let message = ''
+      const messages = []
       if (data.playerShot) {
         if (data.playerShot.result === 'already-fired') {
-          message = 'Already fired there.'
+          messages.push('Already fired there.')
         } else if (data.playerShot.result === 'game-over') {
-          message = 'Game over. Start a new match.'
+          messages.push('Game over. Start a new match.')
         } else if (data.playerShot.shipSunk) {
-          message = 'You sunk a ship!'
+          messages.push('You sunk a ship!')
         } else if (data.playerShot.result === 'hit') {
-          message = 'Hit!'
+          messages.push('Hit!')
         } else if (data.playerShot.result === 'miss') {
-          message = 'Miss!'
+          messages.push('Miss!')
+        }
+      }
+
+      if (data.computerShot?.cell && data.computerShot?.result) {
+        if (data.computerShot.shipSunk) {
+          messages.push(`Computer sunk one of your ships at ${data.computerShot.cell}.`)
+        } else if (data.computerShot.result === 'hit') {
+          messages.push(`Computer hit at ${data.computerShot.cell}.`)
+        } else if (data.computerShot.result === 'miss') {
+          messages.push(`Computer missed at ${data.computerShot.cell}.`)
         }
       }
 
       if (data.winner === 'player' && data.playerShot?.result !== 'game-over') {
-        message = message ? `${message} You win!` : 'You win!'
+        messages.push('You win!')
+      } else if (data.winner === 'computer') {
+        messages.push('Computer wins!')
       }
 
-      applyState(data, message)
+      applyState(data, messages.join(' '))
     })
     .catch(() => {
       statusText.textContent = 'Server error. Try again.'
@@ -151,5 +223,6 @@ restartGameButton.addEventListener('click', () => {
   requestGameAction('restart-game', 'Board reset. Same ship layout.')
 })
 
-createGrid()
+createGrid(grid, computerCells, true)
+createGrid(playerGrid, playerCells, false)
 requestGameAction('state')

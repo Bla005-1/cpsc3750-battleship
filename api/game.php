@@ -12,6 +12,18 @@ function coordsToCell($row, $col) {
   return chr($row + ord('A')) . ($col + 1);
 }
 
+function cellToCoords($cell) {
+  $cell = normalizeCell($cell);
+  if ($cell === null) {
+    return null;
+  }
+
+  $row = ord($cell[0]) - ord('A');
+  $col = intval(substr($cell, 1), 10) - 1;
+
+  return [$row, $col];
+}
+
 function normalizeCell($cell) {
   $cell = strtoupper(trim($cell));
 
@@ -88,13 +100,19 @@ function cloneShipsForRestart($ships) {
   return $cloned;
 }
 
-function createGame($reuseShips = null) {
-  $ships = $reuseShips ? cloneShipsForRestart($reuseShips) : generateShips(SHIP_SIZES);
+function createGame($reuseComputerShips = null, $reusePlayerShips = null) {
+  $computerShips = $reuseComputerShips ? cloneShipsForRestart($reuseComputerShips) : generateShips(SHIP_SIZES);
+  $playerShips = $reusePlayerShips ? cloneShipsForRestart($reusePlayerShips) : generateShips(SHIP_SIZES);
 
   return [
     'winner' => null,
     'computerBoard' => [
-      'ships' => $ships,
+      'ships' => $computerShips,
+      'hits' => [],
+      'misses' => []
+    ],
+    'playerBoard' => [
+      'ships' => $playerShips,
       'hits' => [],
       'misses' => []
     ]
@@ -120,23 +138,142 @@ function publicBoard($board) {
   ];
 }
 
+function playerBoardState($board) {
+  return [
+    'ships' => $board['ships'],
+    'hits' => $board['hits'],
+    'misses' => $board['misses']
+  ];
+}
+
+function boardHasShot($board, $cell) {
+  return in_array($cell, $board['hits'], true) || in_array($cell, $board['misses'], true);
+}
+
+function applyShot(&$board, $cell) {
+  $result = 'miss';
+  $shipSunk = false;
+
+  foreach ($board['ships'] as &$ship) {
+    if (in_array($cell, $ship['cells'], true)) {
+      if (!in_array($cell, $ship['hits'], true)) {
+        $ship['hits'][] = $cell;
+      }
+      $board['hits'][] = $cell;
+      $result = 'hit';
+
+      if (count($ship['hits']) === count($ship['cells'])) {
+        $shipSunk = true;
+      }
+      break;
+    }
+  }
+  unset($ship);
+
+  if ($result === 'miss') {
+    $board['misses'][] = $cell;
+  }
+
+  return [
+    'result' => $result,
+    'shipSunk' => $shipSunk
+  ];
+}
+
+function remainingShots($board) {
+  $shots = [];
+
+  for ($row = 0; $row < GRID_SIZE; $row++) {
+    for ($col = 0; $col < GRID_SIZE; $col++) {
+      $cell = coordsToCell($row, $col);
+      if (!boardHasShot($board, $cell)) {
+        $shots[] = $cell;
+      }
+    }
+  }
+
+  return $shots;
+}
+
+function neighborCells($cell) {
+  $coords = cellToCoords($cell);
+  if ($coords === null) {
+    return [];
+  }
+
+  [$row, $col] = $coords;
+  $candidates = [
+    [$row - 1, $col],
+    [$row + 1, $col],
+    [$row, $col - 1],
+    [$row, $col + 1]
+  ];
+
+  $neighbors = [];
+  foreach ($candidates as $candidate) {
+    [$r, $c] = $candidate;
+    if ($r >= 0 && $r < GRID_SIZE && $c >= 0 && $c < GRID_SIZE) {
+      $neighbors[] = coordsToCell($r, $c);
+    }
+  }
+
+  return $neighbors;
+}
+
+function targetShots($board) {
+  $targets = [];
+
+  foreach ($board['ships'] as $ship) {
+    if (count($ship['hits']) === 0 || count($ship['hits']) === count($ship['cells'])) {
+      continue;
+    }
+
+    foreach ($ship['hits'] as $hitCell) {
+      foreach (neighborCells($hitCell) as $neighbor) {
+        if (!boardHasShot($board, $neighbor)) {
+          $targets[$neighbor] = true;
+        }
+      }
+    }
+  }
+
+  return array_keys($targets);
+}
+
+function chooseComputerShot($board) {
+  $targets = targetShots($board);
+  $choices = count($targets) > 0 ? $targets : remainingShots($board);
+
+  if (count($choices) === 0) {
+    return null;
+  }
+
+  return $choices[array_rand($choices)];
+}
+
 function responseState($game) {
   $sunk = countSunkShips($game['computerBoard']['ships']);
+  $playerSunk = countSunkShips($game['playerBoard']['ships']);
 
   /*
    | Public response contract (consumed by app.js):
    | ok: boolean
-   | winner: 'player' | null
+   | winner: 'player' | 'computer' | null
    | computerBoard: { hits: string[], misses: string[] }
+   | playerBoard: { ships: array, hits: string[], misses: string[] }
    | computerSunk: number
+   | playerSunk: number
    | fleetSize: number
    | playerShot?: { cell: string, result: string, shipSunk?: boolean }
+   | computerShot?: { cell: string, result: string, shipSunk?: boolean }
    */
   return [
     'ok' => true,
     'winner' => $game['winner'],
     'computerBoard' => publicBoard($game['computerBoard']),
+    'playerBoard' => playerBoardState($game['playerBoard']),
     'computerSunk' => $sunk,
+    'playerSunk' => $playerSunk,
     'fleetSize' => count($game['computerBoard']['ships'])
   ];
 }

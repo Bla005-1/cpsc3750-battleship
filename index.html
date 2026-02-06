@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Battleship++</title>
+  <title>Battleship</title>
 
   <link rel="stylesheet" href="styles.css" />
 </head>
@@ -13,7 +13,7 @@
     <header class="topbar">
       <div class="brand">
         <p class="kicker">Tactical Grid</p>
-        <h1>Battleship++</h1>
+        <h1>Battleship</h1>
       </div>
       <div class="top-actions">
         <button id="new-game" class="btn" type="button">New Game</button>
@@ -42,8 +42,24 @@
             <span id="misses" class="stat-value">0</span>
           </div>
           <div class="stat">
-            <span class="stat-label">Ships Sunk</span>
+            <span class="stat-label">Enemy Ships Sunk</span>
             <span id="sunk" class="stat-value">0</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Your Ships Sunk</span>
+            <span id="player-sunk" class="stat-value">0</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Incoming Shots</span>
+            <span id="incoming-shots" class="stat-value">0</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Incoming Hits</span>
+            <span id="incoming-hits" class="stat-value">0</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Incoming Misses</span>
+            <span id="incoming-misses" class="stat-value">0</span>
           </div>
         </div>
 
@@ -56,20 +72,42 @@
             <span class="legend-chip miss"></span>
             <span>Miss</span>
           </div>
+          <div class="legend-item">
+            <span class="legend-chip ship"></span>
+            <span>Your Ship</span>
+          </div>
         </div>
       </section>
 
       <section class="arena">
-        <div class="grid-wrap">
-          <div
-            id="grid"
-            class="grid"
-            aria-label="Computer board. Select a cell to fire."
-          ></div>
+        <div class="boards">
+          <div class="grid-card">
+            <h2 class="grid-title">Enemy Waters</h2>
+            <div class="grid-wrap">
+              <div
+                id="grid"
+                class="grid"
+                aria-label="Computer board. Select a cell to fire."
+              ></div>
+            </div>
+            <p class="grid-hint">
+              Select a coordinate to fire. Board state is controlled by the server.
+            </p>
+          </div>
+          <div class="grid-card">
+            <h2 class="grid-title">Your Fleet</h2>
+            <div class="grid-wrap">
+              <div
+                id="player-grid"
+                class="grid player-grid"
+                aria-label="Your board. Computer shots appear here."
+              ></div>
+            </div>
+            <p class="grid-hint">
+              Computer shots will appear here.
+            </p>
+          </div>
         </div>
-        <p class="grid-hint">
-          Select a coordinate to fire. Board state is controlled by the server.
-        </p>
       </section>
     </main>
   </div>

@@ -22,9 +22,36 @@ if (!isset($game['computerBoard']['ships']) && isset($game['playerBoard']['ships
       'ships' => $game['playerBoard']['ships'],
       'hits' => $game['computerBoard']['hits'] ?? [],
       'misses' => $game['computerBoard']['misses'] ?? []
+    ],
+    'playerBoard' => [
+      'ships' => generateShips(SHIP_SIZES),
+      'hits' => [],
+      'misses' => []
     ]
   ];
 }
+
+if (!isset($game['computerBoard']['ships'])) {
+  $game['computerBoard'] = [
+    'ships' => generateShips(SHIP_SIZES),
+    'hits' => [],
+    'misses' => []
+  ];
+}
+
+if (!isset($game['playerBoard']['ships'])) {
+  $game['playerBoard'] = [
+    'ships' => generateShips(SHIP_SIZES),
+    'hits' => [],
+    'misses' => []
+  ];
+}
+
+$game['computerBoard']['hits'] = $game['computerBoard']['hits'] ?? [];
+$game['computerBoard']['misses'] = $game['computerBoard']['misses'] ?? [];
+$game['playerBoard']['hits'] = $game['playerBoard']['hits'] ?? [];
+$game['playerBoard']['misses'] = $game['playerBoard']['misses'] ?? [];
+$game['winner'] = $game['winner'] ?? null;
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
 
 /*
@@ -44,7 +71,7 @@ if (isset($input['action'])) {
       exit;
 
     case 'restart-game':
-      $_SESSION['game'] = createGame($game['computerBoard']['ships']);
+      $_SESSION['game'] = createGame($game['computerBoard']['ships'], $game['playerBoard']['ships']);
       echo json_encode(responseState($_SESSION['game']));
       exit;
 
@@ -78,44 +105,46 @@ if ($game['winner'] !== null) {
   exit;
 }
 
-if (in_array($cell, $game['computerBoard']['hits'], true) ||
-    in_array($cell, $game['computerBoard']['misses'], true)) {
+if (boardHasShot($game['computerBoard'], $cell)) {
   echo json_encode(responseState($game) + [
     'playerShot' => ['cell' => $cell, 'result' => 'already-fired']
   ]);
   exit;
 }
 
-$result = 'miss';
-$shipSunk = false;
-
-foreach ($game['computerBoard']['ships'] as &$ship) {
-  if (in_array($cell, $ship['cells'])) {
-    $ship['hits'][] = $cell;
-    $game['computerBoard']['hits'][] = $cell;
-    $result = 'hit';
-
-    if (count($ship['hits']) === count($ship['cells'])) {
-      $shipSunk = true;
-    }
-    break;
-  }
-}
-unset($ship);
-
-if ($result === 'miss') {
-  $game['computerBoard']['misses'][] = $cell;
-}
+$playerShot = applyShot($game['computerBoard'], $cell);
 
 $sunk = countSunkShips($game['computerBoard']['ships']);
 if ($sunk === count($game['computerBoard']['ships'])) {
   $game['winner'] = 'player';
 }
 
+$computerShot = null;
+
+if ($game['winner'] === null) {
+  $computerCell = chooseComputerShot($game['playerBoard']);
+
+  if ($computerCell === null) {
+    $computerShot = [
+      'cell' => null,
+      'result' => 'no-moves'
+    ];
+  } else {
+    $computerShot = applyShot($game['playerBoard'], $computerCell);
+    $computerShot['cell'] = $computerCell;
+
+    $playerSunk = countSunkShips($game['playerBoard']['ships']);
+    if ($playerSunk === count($game['playerBoard']['ships'])) {
+      $game['winner'] = 'computer';
+    }
+  }
+}
+
 echo json_encode(responseState($game) + [
   'playerShot' => [
     'cell' => $cell,
-    'result' => $result,
-    'shipSunk' => $shipSunk
-  ]
+    'result' => $playerShot['result'],
+    'shipSunk' => $playerShot['shipSunk']
+  ],
+  'computerShot' => $computerShot
 ]);

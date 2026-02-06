@@ -128,7 +128,7 @@ body {
 
 .legend {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
 }
 
@@ -153,6 +153,10 @@ body {
   background: var(--miss);
 }
 
+.legend-chip.ship {
+  background: #1f2937;
+}
+
 /* ---------- Grid ---------- */
 
 .arena {
@@ -161,10 +165,32 @@ body {
   gap: 12px;
 }
 
+.boards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.grid-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.grid-title {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(10, 1fr);
   gap: 6px;
+  grid-template-columns: repeat(10, 32px);
+  justify-content: center;
 }
 
 .cell {
@@ -183,6 +209,11 @@ body {
 
 .cell:disabled {
   cursor: default;
+}
+
+.cell.ship {
+  background: #0f172a;
+  color: #cbd5f5;
 }
 
 .cell.hit {
@@ -205,6 +236,10 @@ body {
 
 @media (max-width: 900px) {
   .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .boards {
     grid-template-columns: 1fr;
   }
 }
