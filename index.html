@@ -4,9 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Battleship++</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -18,8 +16,8 @@
         <h1>Battleship++</h1>
       </div>
       <div class="top-actions">
-        <button id="new-game" class="btn btn-ghost" type="button">New Game</button>
-        <button id="restart-game" class="btn btn-ghost" type="button">Restart Same Board</button>
+        <button id="new-game" class="btn" type="button">New Game</button>
+        <button id="restart-game" class="btn" type="button">Restart Same Board</button>
       </div>
     </header>
 
@@ -28,7 +26,6 @@
         <div class="status-card">
           <p class="status-label">Command</p>
           <p id="status" class="status-text">Fire at will.</p>
-          <div class="status-pulse" aria-hidden="true"></div>
         </div>
 
         <div class="stats">
@@ -59,18 +56,20 @@
             <span class="legend-chip miss"></span>
             <span>Miss</span>
           </div>
-          <div class="legend-item">
-            <span class="legend-chip neutral"></span>
-            <span>Ready</span>
-          </div>
         </div>
       </section>
 
       <section class="arena">
         <div class="grid-wrap">
-          <div id="grid" class="grid" aria-label="Battle grid"></div>
+          <div
+            id="grid"
+            class="grid"
+            aria-label="Computer board. Select a cell to fire."
+          ></div>
         </div>
-        <p class="grid-hint">Tap a coordinate to fire. Ships are hidden.</p>
+        <p class="grid-hint">
+          Select a coordinate to fire. Board state is controlled by the server.
+        </p>
       </section>
     </main>
   </div>
