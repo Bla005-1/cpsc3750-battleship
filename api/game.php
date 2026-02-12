@@ -2,6 +2,7 @@
 
 const GRID_SIZE = 10;
 const SHIP_SIZES = [5, 3, 2];
+const PLAYER_AMMO = 30;
 
 /*
 |--------------------------------------------------------------------------
@@ -106,6 +107,8 @@ function createGame($reuseComputerShips = null, $reusePlayerShips = null) {
 
   return [
     'winner' => null,
+    'ammoMax' => PLAYER_AMMO,
+    'ammoRemaining' => PLAYER_AMMO,
     'computerBoard' => [
       'ships' => $computerShips,
       'hits' => [],
@@ -264,6 +267,8 @@ function responseState($game) {
    | computerSunk: number
    | playerSunk: number
    | fleetSize: number
+   | ammoMax: number
+   | ammoRemaining: number
    | playerShot?: { cell: string, result: string, shipSunk?: boolean }
    | computerShot?: { cell: string, result: string, shipSunk?: boolean }
    */
@@ -274,6 +279,8 @@ function responseState($game) {
     'playerBoard' => playerBoardState($game['playerBoard']),
     'computerSunk' => $sunk,
     'playerSunk' => $playerSunk,
-    'fleetSize' => count($game['computerBoard']['ships'])
+    'fleetSize' => count($game['computerBoard']['ships']),
+    'ammoMax' => $game['ammoMax'],
+    'ammoRemaining' => $game['ammoRemaining']
   ];
 }

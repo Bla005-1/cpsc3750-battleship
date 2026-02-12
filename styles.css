@@ -113,6 +113,10 @@ body {
   gap: 10px;
 }
 
+.global-stats {
+  margin-top: 4px;
+}
+
 .stat-label {
   font-size: 11px;
   color: var(--muted);

@@ -9,6 +9,11 @@ const playerSunkText = document.getElementById('player-sunk')
 const incomingShotsText = document.getElementById('incoming-shots')
 const incomingHitsText = document.getElementById('incoming-hits')
 const incomingMissesText = document.getElementById('incoming-misses')
+const ammoRemainingText = document.getElementById('ammo-remaining')
+const globalWinsText = document.getElementById('global-wins')
+const globalLossesText = document.getElementById('global-losses')
+const globalShotsText = document.getElementById('global-shots')
+const globalGamesText = document.getElementById('global-games')
 const newGameButton = document.getElementById('new-game')
 const restartGameButton = document.getElementById('restart-game')
 
@@ -19,6 +24,25 @@ const letters = 'ABCDEFGHIJ'
 let gameLocked = false
 const computerCells = {}
 const playerCells = {}
+
+function applyGlobalStats(globalStats) {
+  if (!globalStats) return
+  if (globalWinsText) globalWinsText.textContent = globalStats.totalWins ?? 0
+  if (globalLossesText) globalLossesText.textContent = globalStats.totalLosses ?? 0
+  if (globalShotsText) globalShotsText.textContent = globalStats.totalShotsFired ?? 0
+  if (globalGamesText) globalGamesText.textContent = globalStats.totalGamesPlayed ?? 0
+}
+
+function fetchGlobalStats() {
+  return fetch('api/stats.php')
+    .then(res => res.json())
+    .then(data => {
+      if (data.ok) {
+        applyGlobalStats(data.globalStats)
+      }
+    })
+    .catch(() => {})
+}
 
 function createGrid(targetGrid, cellMap, enableFire) {
   for (let r = 0; r < ROWS; r++) {
@@ -125,6 +149,11 @@ function applyState(state, message) {
     if (incomingHitsText) incomingHitsText.textContent = state.playerBoard.hits.length
     if (incomingMissesText) incomingMissesText.textContent = state.playerBoard.misses.length
   }
+  if (ammoRemainingText) {
+    const remaining = state.ammoRemaining ?? 0
+    const max = state.ammoMax ?? 0
+    ammoRemainingText.textContent = `${remaining}/${max}`
+  }
 
   gameLocked = state.winner !== null
 
@@ -133,7 +162,11 @@ function applyState(state, message) {
   } else if (state.winner === 'player') {
     statusText.textContent = 'You win!'
   } else if (state.winner === 'computer') {
-    statusText.textContent = 'Computer wins!'
+    if ((state.ammoRemaining ?? 0) === 0) {
+      statusText.textContent = 'Out of ammo. Computer wins!'
+    } else {
+      statusText.textContent = 'Computer wins!'
+    }
   } else {
     statusText.textContent = 'Fire at will.'
   }
@@ -141,6 +174,8 @@ function applyState(state, message) {
   if (gameLocked) {
     Object.values(computerCells).forEach(cell => (cell.disabled = true))
   }
+
+  applyGlobalStats(state.globalStats)
 }
 
 function fire(button) {
@@ -186,7 +221,11 @@ function fire(button) {
       if (data.winner === 'player' && data.playerShot?.result !== 'game-over') {
         messages.push('You win!')
       } else if (data.winner === 'computer') {
-        messages.push('Computer wins!')
+        if ((data.ammoRemaining ?? 0) === 0) {
+          messages.push('Out of ammo. Computer wins!')
+        } else {
+          messages.push('Computer wins!')
+        }
       }
 
       applyState(data, messages.join(' '))
@@ -196,7 +235,7 @@ function fire(button) {
     })
 }
 
-function requestGameAction(action, message) {
+function requestGameAction(action, message, shouldRefreshGlobalStats = false) {
   fetch('api/fire.php', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -209,6 +248,9 @@ function requestGameAction(action, message) {
         return
       }
       applyState(data, message)
+      if (shouldRefreshGlobalStats) {
+        fetchGlobalStats()
+      }
     })
     .catch(() => {
       statusText.textContent = 'Server error. Try again.'
@@ -216,13 +258,14 @@ function requestGameAction(action, message) {
 }
 
 newGameButton.addEventListener('click', () => {
-  requestGameAction('new-game', 'New game ready. Fire at will.')
+  requestGameAction('new-game', 'New game ready. Fire at will.', true)
 })
 
 restartGameButton.addEventListener('click', () => {
-  requestGameAction('restart-game', 'Board reset. Same ship layout.')
+  requestGameAction('restart-game', 'Board reset. Same ship layout.', true)
 })
 
 createGrid(grid, computerCells, true)
 createGrid(playerGrid, playerCells, false)
+fetchGlobalStats()
 requestGameAction('state')
